@@ -1,7 +1,6 @@
 if (typeof JSON_INCLUDED === 'undefined') {
     var JSON_INCLUDED = true;
 
-    // Số nguyên 8 bit có dấu
     class Int8 {
         constructor(value) {
             this.value = value & 0xFF;
@@ -9,7 +8,6 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     }
 
-    // Số nguyên 16 bit có dấu
     class Int16 {
         constructor(value) {
             this.value = value & 0xFFFF;
@@ -17,42 +15,36 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     }
 
-    // Số nguyên 32 bit có dấu
     class Int32 {
         constructor(value) {
-            this.value = value | 0;  // Chuyển đổi sang số nguyên 32 bit
+            this.value = value | 0;
         }
     }
 
-    // Số nguyên 64 bit có dấu (sử dụng BigInt)
     class Int64 {
         constructor(value) {
             this.value = BigInt(value);
         }
     }
 
-    // Số nguyên 8 bit không dấu
     class UInt8 {
         constructor(value) {
             this.value = value & 0xFF;
         }
     }
 
-    // Số nguyên 16 bit không dấu
     class UInt16 {
         constructor(value) {
             this.value = value & 0xFFFF;
         }
     }
 
-    // Số nguyên 32 bit không dấu
     class UInt32 {
         constructor(value) {
-            this.value = value >>> 0; // Chuyển đổi sang số nguyên không dấu
+            this.value = value >>> 0;
         }
     }
 
-    // Số nguyên 64 bit không dấu (sử dụng BigInt)
     class UInt64 {
         constructor(value) {
             this.value = BigInt(value);
@@ -233,17 +225,14 @@ if (typeof JSON_INCLUDED === 'undefined') {
         static null = new JValue(JValue.TYPE.E_NULL);
         static nullData = '';
 
-        // Cần thiết để ghi ra JSON
         write() {
             return JSON.stringify(this.m_Value);
         }
 
-        // Ghi với style (thêm không gian hoặc dấu xuống dòng tùy chọn)
         styleWrite() {
             return JSON.stringify(this.m_Value, null, 2);
         }
 
-        // Đọc từ chuỗi JSON
         read(jsonStr) {
             try {
                 this.m_Value = JSON.parse(jsonStr);
@@ -328,6 +317,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
         readToken(token) {
             this.skipSpaces();
             token.pbeg = this.m_pCur;
+        
             switch (this.m_pCur[0]) {
                 case 'n':
                     if (this.match('null')) {
@@ -347,8 +337,55 @@ if (typeof JSON_INCLUDED === 'undefined') {
                         return true;
                     }
                     break;
-                // Thêm các case khác để đọc token số, chuỗi, mảng, đối tượng...
+                case '"':
+                    this.m_pCur++;
+                    while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== '"') {
+                        if (this.m_pCur[0] === '\\') this.m_pCur++;  // Bỏ qua ký tự escape
+                        this.m_pCur++;
+                    }
+                    if (this.m_pCur < this.m_pEnd && this.m_pCur[0] === '"') {
+                        this.m_pCur++;
+                        token.type = JReader.TokenType.E_String;
+                        token.pend = this.m_pCur;
+                        return true;
+                    }
+                    break;
+                case '[':
+                    token.type = JReader.TokenType.E_ArrayBegin;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
+                case ']':
+                    token.type = JReader.TokenType.E_ArrayEnd;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
+                case '{':
+                    token.type = JReader.TokenType.E_ObjectBegin;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
+                case '}':
+                    token.type = JReader.TokenType.E_ObjectEnd;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
+                case ',':
+                    token.type = JReader.TokenType.E_ArraySeparator;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
+                case ':':
+                    token.type = JReader.TokenType.E_MemberSeparator;
+                    this.m_pCur++;
+                    token.pend = this.m_pCur;
+                    return true;
                 default:
+                    if (this.m_pCur[0] === '-' || (this.m_pCur[0] >= '0' && this.m_pCur[0] <= '9')) {
+                        if (this.readNumber(token)) {
+                            return true;
+                        }
+                    }
                     return this.addError("Unexpected token", this.m_pCur);
             }
             return false;
@@ -374,15 +411,15 @@ if (typeof JSON_INCLUDED === 'undefined') {
                     break;
                 case JReader.TokenType.E_Integer:
                     jval.m_eType = JValue.TYPE.E_INT;
-                    jval.m_Value = parseInt(token.pbeg, 10);  // Chuyển đổi chuỗi thành số nguyên
+                    jval.m_Value = parseInt(token.pbeg, 10);
                     break;
                 case JReader.TokenType.E_Real:
                     jval.m_eType = JValue.TYPE.E_FLOAT;
-                    jval.m_Value = parseFloat(token.pbeg);  // Chuyển đổi chuỗi thành số thực
+                    jval.m_Value = parseFloat(token.pbeg);
                     break;
                 case JReader.TokenType.E_String:
                     jval.m_eType = JValue.TYPE.E_STRING;
-                    jval.m_Value = token.pbeg.substring(0, token.pend - token.pbeg);  // Gán giá trị chuỗi trực tiếp từ token
+                    jval.m_Value = token.pbeg.substring(0, token.pend - token.pbeg);
                     break;
                 case JReader.TokenType.E_ArrayBegin:
                     return this.readArray(jval);
@@ -397,7 +434,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
         readArray(jval) {
             jval.m_eType = JValue.TYPE.E_ARRAY;
             jval.m_Value = [];
-            this.m_pCur++; // Bỏ qua dấu '['
+            this.m_pCur++;
             this.skipSpaces();
     
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== ']') {
@@ -412,14 +449,14 @@ if (typeof JSON_INCLUDED === 'undefined') {
                     this.skipSpaces();
                 }
             }
-            this.m_pCur++; // Bỏ qua dấu ']'
+            this.m_pCur++;
             return true;
         }
     
         readObject(jval) {
             jval.m_eType = JValue.TYPE.E_OBJECT;
             jval.m_Value = {};
-            this.m_pCur++; // Bỏ qua dấu '{'
+            this.m_pCur++;
             this.skipSpaces();
     
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== '}') {
@@ -431,7 +468,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
                 if (this.m_pCur[0] !== ':') {
                     return this.addError("Expected ':' after key", this.m_pCur);
                 }
-                this.m_pCur++; // Bỏ qua dấu ':'
+                this.m_pCur++;
                 this.skipSpaces();
     
                 let val = new JValue();
@@ -445,7 +482,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
                     this.skipSpaces();
                 }
             }
-            this.m_pCur++; // Bỏ qua dấu '}'
+            this.m_pCur++;
             return true;
         }
     
@@ -453,7 +490,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
             if (this.m_pCur[0] !== '"') {
                 return this.addError("Expected '\"' to begin a string", this.m_pCur);
             }
-            this.m_pCur++; // Bỏ qua dấu '"'
+            this.m_pCur++;
             let start = this.m_pCur;
     
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== '"') {
@@ -461,7 +498,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
             }
             jval.m_eType = JValue.TYPE.E_STRING;
             jval.m_Value = this.m_pCur.substring(start, this.m_pCur - start);
-            this.m_pCur++; // Bỏ qua dấu '"'
+            this.m_pCur++;
             return true;
         }
     
@@ -510,7 +547,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     
         static FastWrite(jval, strDoc) {
-            strDoc.value = '';  // reset the string
+            strDoc.value = '';
             JWriter.FastWriteValue(jval, strDoc);
         }
     
@@ -901,7 +938,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
         readArray(jval) {
             jval.m_eType = JValue.TYPE.E_ARRAY;
             jval.m_Value = [];
-            this.m_pCur++; // Skip '['
+            this.m_pCur++;
             this.skipSpaces();
     
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== ']') {
@@ -916,14 +953,14 @@ if (typeof JSON_INCLUDED === 'undefined') {
                     this.skipSpaces();
                 }
             }
-            this.m_pCur++; // Skip ']'
+            this.m_pCur++;
             return true;
         }
     
         readDictionary(jval) {
             jval.m_eType = JValue.TYPE.E_OBJECT;
             jval.m_Value = {};
-            this.m_pCur++; // Skip '{'
+            this.m_pCur++;
             this.skipSpaces();
     
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== '}') {
@@ -935,7 +972,7 @@ if (typeof JSON_INCLUDED === 'undefined') {
                 if (this.m_pCur[0] !== ':') {
                     return this.addError("Expected ':' after key", this.m_pCur);
                 }
-                this.m_pCur++; // Skip ':'
+                this.m_pCur++;
                 this.skipSpaces();
     
                 let val = new JValue();
@@ -949,157 +986,132 @@ if (typeof JSON_INCLUDED === 'undefined') {
                     this.skipSpaces();
                 }
             }
-            this.m_pCur++; // Skip '}'
+            this.m_pCur++;
             return true;
         }
     
         readNumber() {
-            this.skipSpaces();  // Bỏ qua các khoảng trắng trước khi bắt đầu đọc số
+            this.skipSpaces();
         
-            let start = this.m_pCur;  // Lưu vị trí bắt đầu của chuỗi số
+            let start = this.m_pCur;
         
             if (this.m_pCur[0] === '-') {
-                this.m_pCur++;  // Nếu có dấu âm, bỏ qua dấu trừ
+                this.m_pCur++;
             }
         
-            // Đọc các chữ số nguyên trước dấu chấm thập phân
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] >= '0' && this.m_pCur[0] <= '9') {
                 this.m_pCur++;
             }
         
-            // Kiểm tra nếu có dấu chấm thập phân
             if (this.m_pCur < this.m_pEnd && this.m_pCur[0] === '.') {
-                this.m_pCur++;  // Bỏ qua dấu chấm thập phân
+                this.m_pCur++;
         
-                // Đọc các chữ số sau dấu chấm thập phân
                 while (this.m_pCur < this.m_pEnd && this.m_pCur[0] >= '0' && this.m_pCur[0] <= '9') {
                     this.m_pCur++;
                 }
             }
         
-            // Kiểm tra nếu có phần mũ (exponent)
             if (this.m_pCur < this.m_pEnd && (this.m_pCur[0] === 'e' || this.m_pCur[0] === 'E')) {
-                this.m_pCur++;  // Bỏ qua chữ 'e' hoặc 'E'
+                this.m_pCur++;
         
-                // Kiểm tra nếu có dấu âm hoặc dương cho phần mũ
                 if (this.m_pCur < this.m_pEnd && (this.m_pCur[0] === '-' || this.m_pCur[0] === '+')) {
                     this.m_pCur++;
                 }
         
-                // Đọc các chữ số của phần mũ
                 while (this.m_pCur < this.m_pEnd && this.m_pCur[0] >= '0' && this.m_pCur[0] <= '9') {
                     this.m_pCur++;
                 }
             }
         
-            // Trích xuất chuỗi số từ vị trí bắt đầu đến vị trí hiện tại
             let numStr = this.m_pCur.substring(start, this.m_pCur);
         
-            // Chuyển đổi chuỗi số thành giá trị số
             let value;
             if (numStr.includes('.') || numStr.includes('e') || numStr.includes('E')) {
-                value = parseFloat(numStr);  // Nếu có dấu chấm hoặc mũ, chuyển đổi thành số thực
+                value = parseFloat(numStr);
             } else {
-                value = parseInt(numStr, 10);  // Nếu không, chuyển đổi thành số nguyên
+                value = parseInt(numStr, 10);
             }
         
-            // Kiểm tra nếu giá trị không hợp lệ
             if (isNaN(value)) {
                 return this.addError("Invalid number format", start);
             }
         
-            // Trả về giá trị số đã đọc được
             return value;
         }
     
         readString(jval) {
-            this.skipSpaces();  // Bỏ qua các khoảng trắng trước khi bắt đầu đọc chuỗi
+            this.skipSpaces();
         
             if (this.m_pCur >= this.m_pEnd || this.m_pCur[0] !== '"') {
-                // Nếu không gặp dấu ngoặc kép mở hoặc đã đến cuối chuỗi, thêm lỗi và trả về false
                 return this.addError("Expected '\"' at the beginning of string", this.m_pCur);
             }
         
-            this.m_pCur++;  // Bỏ qua dấu ngoặc kép mở để bắt đầu đọc chuỗi
+            this.m_pCur++;
         
-            let start = this.m_pCur;  // Lưu vị trí bắt đầu của chuỗi
+            let start = this.m_pCur;
         
             while (this.m_pCur < this.m_pEnd && this.m_pCur[0] !== '"') {
-                if (this.m_pCur[0] === '\\') {  // Kiểm tra ký tự escape
-                    this.m_pCur++;  // Bỏ qua ký tự escape và tiếp tục đọc ký tự tiếp theo
+                if (this.m_pCur[0] === '\\') {
+                    this.m_pCur++;
                 }
-                this.m_pCur++;  // Tiếp tục đọc ký tự tiếp theo
+                this.m_pCur++;
             }
         
             if (this.m_pCur >= this.m_pEnd || this.m_pCur[0] !== '"') {
-                // Nếu không gặp dấu ngoặc kép đóng hoặc đã đến cuối chuỗi, thêm lỗi và trả về false
                 return this.addError("Expected '\"' at the end of string", this.m_pCur);
             }
         
-            // Trích xuất chuỗi từ vị trí bắt đầu đến vị trí hiện tại
             let strValue = this.m_pCur.substring(start, this.m_pCur);
         
-            // Gán giá trị chuỗi cho jval và thiết lập loại dữ liệu là chuỗi
             jval.m_eType = JValue.TYPE.E_STRING;
-            jval.m_Value = this.unescapeString(strValue);  // Xử lý ký tự escape trong chuỗi nếu cần
+            jval.m_Value = this.unescapeString(strValue);
         
-            this.m_pCur++;  // Bỏ qua dấu ngoặc kép đóng
+            this.m_pCur++;
         
-            return true;  // Trả về true nếu đọc chuỗi thành công
+            return true;
         }
     
         decodeNumber(token, jval) {
-            // Trích xuất chuỗi số từ token
             let numStr = token.pbeg.substring(0, token.pend - token.pbeg);
         
-            // Kiểm tra nếu chuỗi số chứa dấu chấm thập phân hoặc mũ (exponent)
             if (numStr.includes('.') || numStr.includes('e') || numStr.includes('E')) {
-                // Nếu có dấu chấm thập phân hoặc mũ, chuyển đổi chuỗi thành số thực
                 jval.m_eType = JValue.TYPE.E_FLOAT;
                 jval.m_Value = parseFloat(numStr);
             } else {
-                // Nếu không, chuyển đổi chuỗi thành số nguyên
                 jval.m_eType = JValue.TYPE.E_INT;
                 jval.m_Value = parseInt(numStr, 10);
             }
         
-            // Kiểm tra nếu giá trị số không hợp lệ (NaN)
             if (isNaN(jval.m_Value)) {
                 return this.addError("Invalid number format", token.pbeg);
             }
         
-            return true;  // Trả về true nếu việc giải mã số thành công
+            return true;
         }
     
         decodeString(token, decoded, filter = true) {
-            // Trích xuất chuỗi từ token
             let rawStr = token.pbeg.substring(0, token.pend - token.pbeg);
         
             if (filter) {
-                // Nếu cần lọc các ký tự escape
                 decoded.value = this.unescapeString(rawStr);
             } else {
-                // Nếu không cần lọc, giữ nguyên chuỗi
                 decoded.value = rawStr;
             }
         
-            return true;  // Trả về true nếu việc giải mã chuỗi thành công
+            return true;
         }
     
         decodeDouble(token, jval) {
-            // Trích xuất chuỗi số từ token
             let numStr = token.pbeg.substring(0, token.pend - token.pbeg);
         
-            // Chuyển đổi chuỗi thành số thực (double)
             jval.m_eType = JValue.TYPE.E_FLOAT;
             jval.m_Value = parseFloat(numStr);
         
-            // Kiểm tra nếu giá trị số không hợp lệ (NaN)
             if (isNaN(jval.m_Value)) {
                 return this.addError("Invalid double format", token.pbeg);
             }
         
-            return true;  // Trả về true nếu việc giải mã số thực thành công
+            return true;
         }
     
         skipSpaces() {
@@ -1114,15 +1126,13 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     
         parseBinary(pbdoc, len, pv) {
-            this.m_pCur = pbdoc;  // Đặt con trỏ hiện tại tới đầu dữ liệu nhị phân
-            this.m_pEnd = pbdoc + len;  // Đặt con trỏ kết thúc tới cuối dữ liệu nhị phân
+            this.m_pCur = pbdoc;
+            this.m_pEnd = pbdoc + len;
         
-            // Kiểm tra xem độ dài dữ liệu có đủ để chứa phần header tối thiểu không
             if (len < 8) {
                 return this.addError("Binary data too short", this.m_pCur);
             }
         
-            // Đọc phần header của dữ liệu nhị phân
             let header = this.m_pCur.substring(0, 8);
             this.m_pCur += 8;
         
@@ -1130,138 +1140,118 @@ if (typeof JSON_INCLUDED === 'undefined') {
                 return this.addError("Invalid binary plist header", this.m_pCur);
             }
         
-            // Đọc trailer ở cuối file để lấy thông tin cần thiết cho việc phân tích
             this.m_pTrailer = this.m_pEnd - 32;
             this.m_uObjects = this.readUInt64(this.m_pTrailer + 16);
             this.m_uOffsetSize = this.readUInt8(this.m_pTrailer + 7);
-            this.m_pOffsetTable = this.m_pCur;  // Giả sử offset table nằm sau header
+            this.m_pOffsetTable = this.m_pCur;
         
-            // Đọc dữ liệu nhị phân chính
             return this.readBinaryValue(this.m_pCur, pv);
         }
         
         readUInt64(p) {
-            // Chuyển đổi 8 byte thành một giá trị 64-bit unsigned integer
             let high = (p.charCodeAt(0) << 24) | (p.charCodeAt(1) << 16) | (p.charCodeAt(2) << 8) | p.charCodeAt(3);
             let low = (p.charCodeAt(4) << 24) | (p.charCodeAt(5) << 16) | (p.charCodeAt(6) << 8) | p.charCodeAt(7);
-            return (high * 0x100000000) + low;  // Kết hợp phần cao và thấp để tạo thành giá trị 64-bit
+            return (high * 0x100000000) + low;
         }
         
         readUInt8(p) {
-            // Đọc 1 byte và chuyển đổi thành một giá trị 8-bit unsigned integer
             return p.charCodeAt(0);
         }
         
         readBinaryValue(pcur, pv) {
-            let type = this.readUInt8(pcur);  // Đọc loại dữ liệu từ byte đầu tiên
+            let type = this.readUInt8(pcur);
         
             switch (type) {
                 case 0x00:
-                    // Trường hợp null hoặc đối tượng rỗng
                     pv.m_eType = JValue.TYPE.E_NULL;
                     pv.m_Value = null;
                     return true;
         
                 case 0x01:
-                    // Trường hợp boolean false
                     pv.m_eType = JValue.TYPE.E_BOOL;
                     pv.m_Value = false;
                     return true;
         
                 case 0x09:
-                    // Trường hợp boolean true
                     pv.m_eType = JValue.TYPE.E_BOOL;
                     pv.m_Value = true;
                     return true;
         
                 case 0x10:
-                    // Trường hợp chuỗi UTF-8
-                    let length = this.readUInt8(pcur + 1);  // Đọc độ dài chuỗi
+                    let length = this.readUInt8(pcur + 1);
                     pv.m_eType = JValue.TYPE.E_STRING;
-                    pv.m_Value = pcur.substring(2, 2 + length);  // Trích xuất chuỗi từ dữ liệu nhị phân
+                    pv.m_Value = pcur.substring(2, 2 + length);
                     return true;
         
                 case 0x11:
-                    // Trường hợp chuỗi UTF-16 (mỗi ký tự là 2 byte)
-                    let utf16Length = this.readUInt8(pcur + 1) * 2;  // Đọc độ dài chuỗi (mỗi ký tự chiếm 2 byte)
+                    let utf16Length = this.readUInt8(pcur + 1) * 2;
                     pv.m_eType = JValue.TYPE.E_STRING;
-                    pv.m_Value = '';  // Khởi tạo chuỗi rỗng
+                    pv.m_Value = '';
                     for (let i = 2; i < 2 + utf16Length; i += 2) {
-                        let charCode = (pcur.charCodeAt(i) << 8) | pcur.charCodeAt(i + 1);  // Đọc từng ký tự UTF-16
+                        let charCode = (pcur.charCodeAt(i) << 8) | pcur.charCodeAt(i + 1);
                         pv.m_Value += String.fromCharCode(charCode);
                     }
                     return true;
         
                 case 0x20:
-                    // Trường hợp số nguyên 8-bit
                     pv.m_eType = JValue.TYPE.E_INT;
-                    pv.m_Value = this.readUInt8(pcur + 1);  // Đọc số nguyên 8-bit
+                    pv.m_Value = this.readUInt8(pcur + 1);
                     return true;
         
                 case 0x21:
-                    // Trường hợp số nguyên 16-bit
                     pv.m_eType = JValue.TYPE.E_INT;
-                    pv.m_Value = this.readUInt16(pcur + 1);  // Đọc số nguyên 16-bit
+                    pv.m_Value = this.readUInt16(pcur + 1);
                     return true;
         
                 case 0x22:
-                    // Trường hợp số nguyên 32-bit
                     pv.m_eType = JValue.TYPE.E_INT;
-                    pv.m_Value = this.readUInt32(pcur + 1);  // Đọc số nguyên 32-bit
+                    pv.m_Value = this.readUInt32(pcur + 1);
                     return true;
         
                 case 0x23:
-                    // Trường hợp số nguyên 64-bit
                     pv.m_eType = JValue.TYPE.E_INT;
-                    pv.m_Value = this.readUInt64(pcur + 1);  // Đọc số nguyên 64-bit
+                    pv.m_Value = this.readUInt64(pcur + 1);
                     return true;
         
                 case 0x40:
-                    // Trường hợp dữ liệu (data)
-                    let dataLength = this.readUInt8(pcur + 1);  // Đọc độ dài dữ liệu
+                    let dataLength = this.readUInt8(pcur + 1);
                     pv.m_eType = JValue.TYPE.E_DATA;
-                    pv.m_Value = pcur.substring(2, 2 + dataLength);  // Trích xuất dữ liệu nhị phân
+                    pv.m_Value = pcur.substring(2, 2 + dataLength);
                     return true;
         
                 case 0x30:
-                    // Trường hợp số thực (float)
                     pv.m_eType = JValue.TYPE.E_FLOAT;
-                    pv.m_Value = this.readFloat(pcur + 1);  // Đọc số thực (float) 32-bit
+                    pv.m_Value = this.readFloat(pcur + 1);
                     return true;
         
                 case 0x31:
-                    // Trường hợp số thực (double)
                     pv.m_eType = JValue.TYPE.E_FLOAT;
-                    pv.m_Value = this.readDouble(pcur + 1);  // Đọc số thực (double) 64-bit
+                    pv.m_Value = this.readDouble(pcur + 1);
                     return true;
         
                 case 0x50:
-                    // Trường hợp mảng
-                    let arraySize = this.readUInt8(pcur + 1);  // Đọc kích thước mảng
+                    let arraySize = this.readUInt8(pcur + 1);
                     pv.m_eType = JValue.TYPE.E_ARRAY;
                     pv.m_Value = [];
                     for (let i = 0; i < arraySize; i++) {
                         let element = new JValue();
-                        this.readBinaryValue(pcur + 2 + i * this.m_uOffsetSize, element);  // Đọc từng phần tử mảng
+                        this.readBinaryValue(pcur + 2 + i * this.m_uOffsetSize, element);
                         pv.m_Value.push(element);
                     }
                     return true;
         
                 case 0x60:
-                    // Trường hợp đối tượng (dictionary)
-                    let dictSize = this.readUInt8(pcur + 1);  // Đọc kích thước dictionary
+                    let dictSize = this.readUInt8(pcur + 1);
                     pv.m_eType = JValue.TYPE.E_OBJECT;
                     pv.m_Value = {};
                     for (let i = 0; i < dictSize; i++) {
                         let key = new JValue();
                         let value = new JValue();
-                        this.readBinaryValue(pcur + 2 + i * 2 * this.m_uOffsetSize, key);  // Đọc khóa
-                        this.readBinaryValue(pcur + 2 + (i * 2 + 1) * this.m_uOffsetSize, value);  // Đọc giá trị
+                        this.readBinaryValue(pcur + 2 + i * 2 * this.m_uOffsetSize, key);
+                        this.readBinaryValue(pcur + 2 + (i * 2 + 1) * this.m_uOffsetSize, value);
                         pv.m_Value[key.asString()] = value;
                     }
                     return true;
-        
-                // Xử lý các loại dữ liệu khác nếu cần thiết...
         
                 default:
                     return this.addError("Unsupported binary data type", pcur);
@@ -1273,7 +1263,13 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     
         byteConvert(v, size) {
-            // Implement byte conversion logic here...
+            let result = 0;
+        
+            for (let i = 0; i < size; i++) {
+                result = (result << 8) | (v[i] & 0xFF);
+            }
+        
+            return result;
         }
     
         getUIntVal(v, size) {
@@ -1285,13 +1281,118 @@ if (typeof JSON_INCLUDED === 'undefined') {
         }
     
         readUIntSize(pcur, size) {
-            // Implement read unsigned int size logic here...
-            return false;
+            switch (size) {
+                case 1:
+                    return this.readUInt8(pcur);
+        
+                case 2:
+                    return this.readUInt16(pcur);
+        
+                case 4:
+                    return this.readUInt32(pcur);
+        
+                case 8:
+                    return this.readUInt64(pcur);
+        
+                default:
+                    return this.addError("Invalid size for unsigned int", pcur);
+            }
         }
     
         readBinaryValue(pcur, pv) {
-            // Implement binary value reading logic here...
-            return false;
+            let type = this.readUInt8(pcur);
+        
+            switch (type) {
+                case 0x00:
+                    pv.m_eType = JValue.TYPE.E_NULL;
+                    pv.m_Value = null;
+                    return true;
+        
+                case 0x01:
+                    pv.m_eType = JValue.TYPE.E_BOOL;
+                    pv.m_Value = false;
+                    return true;
+        
+                case 0x09:
+                    pv.m_eType = JValue.TYPE.E_BOOL;
+                    pv.m_Value = true;
+                    return true;
+        
+                case 0x10:
+                    let length = this.readUIntSize(pcur + 1, 1);
+                    pv.m_eType = JValue.TYPE.E_STRING;
+                    pv.m_Value = this.readString(pcur + 2, length);
+                    return true;
+        
+                case 0x11:
+                    let utf16Length = this.readUIntSize(pcur + 1, 1) * 2;
+                    pv.m_eType = JValue.TYPE.E_STRING;
+                    pv.m_Value = this.readUTF16String(pcur + 2, utf16Length);
+                    return true;
+        
+                case 0x20:
+                    pv.m_eType = JValue.TYPE.E_INT;
+                    pv.m_Value = this.readUInt8(pcur + 1);
+                    return true;
+        
+                case 0x21:
+                    pv.m_eType = JValue.TYPE.E_INT;
+                    pv.m_Value = this.readUInt16(pcur + 1);
+                    return true;
+        
+                case 0x22:
+                    pv.m_eType = JValue.TYPE.E_INT;
+                    pv.m_Value = this.readUInt32(pcur + 1);
+                    return true;
+        
+                case 0x23:
+                    pv.m_eType = JValue.TYPE.E_INT;
+                    pv.m_Value = this.readUInt64(pcur + 1);
+                    return true;
+        
+                case 0x30:
+                    pv.m_eType = JValue.TYPE.E_FLOAT;
+                    pv.m_Value = this.readFloat(pcur + 1);
+                    return true;
+        
+                case 0x31:
+                    pv.m_eType = JValue.TYPE.E_FLOAT;
+                    pv.m_Value = this.readDouble(pcur + 1);
+                    return true;
+        
+                case 0x40:
+                    let dataLength = this.readUIntSize(pcur + 1, 1);
+                    pv.m_eType = JValue.TYPE.E_DATA;
+                    pv.m_Value = this.readData(pcur + 2, dataLength);
+                    return true;
+        
+                case 0x50:
+                    let arraySize = this.readUIntSize(pcur + 1, 1); 
+                    pv.m_eType = JValue.TYPE.E_ARRAY;
+                    pv.m_Value = [];
+                    for (let i = 0; i < arraySize; i++) {
+                        let element = new JValue();
+                        this.readBinaryValue(pcur + 2 + i * this.m_uOffsetSize, element);
+                        pv.m_Value.push(element);
+                    }
+                    return true;
+        
+                case 0x60:
+                    let dictSize = this.readUIntSize(pcur + 1, 1);
+                    pv.m_eType = JValue.TYPE.E_OBJECT;
+                    pv.m_Value = {};
+                    for (let i = 0; i < dictSize; i++) {
+                        let key = new JValue();
+                        let value = new JValue();
+                        this.readBinaryValue(pcur + 2 + i * 2 * this.m_uOffsetSize, key);
+                        this.readBinaryValue(pcur + 2 + (i * 2 + 1) * this.m_uOffsetSize, value);
+                        pv.m_Value[key.asString()] = value;
+                    }
+                    return true;
+        
+                default:
+                    return this.addError("Unsupported binary data type", pcur);
+            }
         }
     
         readUnicode(pcur, size, pv) {
@@ -1307,6 +1408,28 @@ if (typeof JSON_INCLUDED === 'undefined') {
             strval = strval.replace(/&quot;/g, '"');
             strval = strval.replace(/&apos;/g, "'");
             return strval;
+        }
+    }
+    class PWriter {
+        static FastWrite(pval, strdoc) {
+            strdoc += JSON.stringify(pval);
+        }
+    
+        static FastWriteValue(pval, strdoc, strindent) {
+            const formattedValue = JSON.stringify(pval, null, strindent);
+            strdoc += formattedValue;
+        }
+    
+        static XMLEscape(strval) {
+            strval = strval.replace(/&/g, "&amp;")
+                           .replace(/</g, "&lt;")
+                           .replace(/>/g, "&gt;")
+                           .replace(/"/g, "&quot;")
+                           .replace(/'/g, "&apos;");
+        }
+    
+        static StringReplace(context, from, to) {
+            return context.split(from).join(to);
         }
     }
 
