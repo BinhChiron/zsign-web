@@ -45,7 +45,7 @@ fetch('http://localhost:3000/sign', {
 
 
 
-For more details, check out the original project on GitHub: zsign GitHub Repository.
+For more details, check out the original project on GitHub: [zsign GitHub Repository]([https://github.com/zhlynn/zsign])).
 
 Ghi chú:
 
