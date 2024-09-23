@@ -49,6 +49,6 @@ For more details, check out the original project on GitHub: zsign GitHub Reposit
 
 Ghi chú:
 
-node-gyp được sử dụng để build các module C++ cho Node.js. Hãy chắc chắn rằng bạn đã cài đặt Python và các công cụ build cần thiết cho môi trường của bạn (trên Windows, bạn có thể cần cài Visual Studio Build Tools).
+- node-gyp được sử dụng để build các module C++ cho Node.js. Hãy chắc chắn rằng bạn đã cài đặt Python và các công cụ build cần thiết cho môi trường của bạn (trên Windows, bạn có thể cần cài Visual Studio Build Tools).
 
-Đảm bảo rằng đường dẫn đến file .p12 và mobileprovision là chính xác khi thực hiện API call.
+- Đảm bảo rằng đường dẫn đến file .p12 và mobileprovision là chính xác khi thực hiện API call.
