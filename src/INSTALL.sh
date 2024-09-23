@@ -1,5 +1,3 @@
-#tự động hóa quá trình cài đặt các phụ thuộc cần thiết và biên dịch dự án zsign trên hệ điều hành Ubuntu.
-
 #!/bin/bash
 
 MacOs=darwin

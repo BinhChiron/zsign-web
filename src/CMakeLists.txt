@@ -1,4 +1,3 @@
-# thiết lập môi trường xây dựng cho dự án
 cmake_minimum_required(VERSION 3.14)
 
 project(zsign)

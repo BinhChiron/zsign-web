@@ -1,4 +1,3 @@
---tệp xmake.lua này thiết lập môi trường xây dựng cho dự án zsign, xử lý các phụ thuộc cần thiết như OpenSSL, và cung cấp hướng dẫn về cách sử dụng XMake để xây dựng, cấu hình, và chạy dự án.
 -- add rules: debug/release
 add_rules("mode.debug", "mode.release")
 
